@@ -14,3 +14,4 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 from .likelihood import PoissonLikelihood  # noqa
+from .visualise import read_functions  # noqa
