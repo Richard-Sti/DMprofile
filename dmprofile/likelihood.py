@@ -22,10 +22,10 @@ import numpy
 import sympy
 from scipy.stats import binned_statistic
 
-sys.path.append("/mnt/zfsusers/rstiskalek/DMprofile/ESR")
-from esr.fitting.sympy_symbols import (a0, a1, a2, cube, inv, log, pow, sqrt,
-                                       square, x)
-from esr.generation import simplifier
+sys.path.append("/mnt/zfsusers/rstiskalek/DMprofile/ESR")  # noqa
+from esr.fitting.sympy_symbols import (a0, a1, a2, cube, inv, log, pow, sqrt,  # noqa
+                                       square, x)  # noqa
+from esr.generation import simplifier  # noqa
 
 
 class PoissonLikelihood:
