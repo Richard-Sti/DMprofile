@@ -15,6 +15,7 @@
 """
 ESR likelihood for fitting DM density profiles on N-body simulations.
 """
+from abc import (ABC, abstractmethod)
 import os
 import sys
 
@@ -28,7 +29,67 @@ from esr.fitting.sympy_symbols import (a0, a1, a2, cube, inv, log, pow, sqrt,  #
 from esr.generation import simplifier  # noqa
 
 
-class PoissonLikelihood:
+class BaseLikelihood(ABC):
+    xlabel = None
+    ylabel = None
+
+    def set_paths(self, name):
+        """Setup paths for ESR."""
+        esr_dir = os.path.abspath(os.path.join(os.path.dirname(simplifier.__file__), '..', '')) + '/'  # noqa
+        self.fn_dir = esr_dir + "function_library/core_maths/"
+        self.like_dir = esr_dir + "/fitting/"
+        self.like_file = f"likelihood_{name}"
+        self.sym_file = f"symbols_{name}"
+        self.fnprior_prefix = "aifeyn_"
+        self.combineDL_prefix = "combine_DL_"
+        self.final_prefix = "final_"
+
+        self.base_out_dir = self.like_dir + "/output/"
+        self.temp_dir = self.base_out_dir + f"/partial_{name}_dimful"
+        self.out_dir = self.base_out_dir + f"/output_{name}_dimful"
+        self.fig_dir = self.base_out_dir + f"/figs_{name}_dimful"
+
+    @staticmethod
+    def run_sympify(fcn_i, **kwargs):
+        """
+        Sympify a function.
+
+        Parameters
+        ----------
+        fcn_i : str
+            String representing function we wish to fit to data.
+        **kwargs : dict
+            Additional keyword arguments. Currently not supported.
+
+        Returns
+        -------
+        fcn_i : str
+            String representing function we wish to fit to data with
+            superfluous characters removed.
+        eq : sympy object
+            Sympy object representing function we wish to fit to data.
+        integrated : bool
+            Whether we analytically integrated the function or not.
+        """
+        fcn_i = fcn_i.replace('\n', '')
+        fcn_i = fcn_i.replace('\'', '')
+        locs = {"inv": inv, "square": square, "cube": cube,
+                "sqrt": sqrt, "log": log, "pow": pow, "x": x, "a0": a0,
+                "a1": a1, "a2": a2
+                }
+        eq = sympy.sympify(fcn_i, locals=locs)
+        return fcn_i, eq, False
+
+    @abstractmethod
+    def get_pred(self, r, a, eq_numpy, **kwargs):
+        pass
+
+    @abstractmethod
+    def negloglike(self, a, eq_numpy, **kwargs):
+        pass
+
+
+class PoissonLikelihood(BaseLikelihood):
     """
     Poisson likelihood class to fit DM density profiles on N-body simulations.
     Calculated on binned data such that the predicted number of particles in a
@@ -47,23 +108,7 @@ class PoissonLikelihood:
 
     def __init__(self, datapath, name, mpart=1.1641532e-10):
         # First of all, we set up the ESR paths
-        esr_dir = os.path.abspath(os.path.join(os.path.dirname(simplifier.__file__), '..', '')) + '/'  # noqa
-        self.fn_dir = esr_dir + "function_library/core_maths/"
-        self.like_dir = esr_dir + "/fitting/"
-        self.like_file = f"likelihood_{name}"
-        self.sym_file = f"symbols_{name}"
-        self.fnprior_prefix = "aifeyn_"
-        self.combineDL_prefix = "combine_DL_"
-        self.final_prefix = "final_"
-
-        self.base_out_dir = self.like_dir + "/output/"
-        self.temp_dir = self.base_out_dir + f"/partial_{name}_dimful"
-        self.out_dir = self.base_out_dir + f"/output_{name}_dimful"
-        self.fig_dir = self.base_out_dir + f"/figs_{name}_dimful"
-
-        # These are used in ESR diagnostics plots.
-        self.xlabel = r"$r$"
-        self.ylabel = r"$\rho(r)$"
+        self.set_paths("poisson_" + name)
 
         # Now we load the data. TODO: later do this directly when generating
         # the data to avoid unnecessary overhead here.
@@ -127,33 +172,3 @@ class PoissonLikelihood:
         if not numpy.isfinite(negll):
             return numpy.infty
         return negll
-
-    def run_sympify(self, fcn_i, **kwargs):
-        """
-        Sympify a function.
-
-        Parameters
-        ----------
-        fcn_i : str
-            String representing function we wish to fit to data.
-        **kwargs : dict
-            Additional keyword arguments. Currently not supported.
-
-        Returns
-        -------
-        fcn_i : str
-            String representing function we wish to fit to data with
-            superfluous characters removed.
-        eq : sympy object
-            Sympy object representing function we wish to fit to data.
-        integrated : bool
-            Whether we analytically integrated the function or not.
-        """
-        fcn_i = fcn_i.replace('\n', '')
-        fcn_i = fcn_i.replace('\'', '')
-        locs = {"inv": inv, "square": square, "cube": cube,
-                "sqrt": sqrt, "log": log, "pow": pow, "x": x, "a0": a0,
-                "a1": a1, "a2": a2
-                }
-        eq = sympy.sympify(fcn_i, locals=locs)
-        return fcn_i, eq, False
