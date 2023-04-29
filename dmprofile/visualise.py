@@ -21,8 +21,8 @@ import csv
 import sympy
 
 sys.path.append("/mnt/zfsusers/rstiskalek/DMprofile/ESR")  # noqa
-from esr.fitting.sympy_symbols import (a0, a1, a2, a3, x)  # noqa
-from esr.generation import simplifier # noqa
+from esr.fitting.sympy_symbols import (a0, a1, a2, a3, x)  # noqa  # type: ignore
+from esr.generation import simplifier # noqa  # type: ignore
 
 
 def read_functions(comp, likelihood, nfunc=50, vmin=1e-50):
