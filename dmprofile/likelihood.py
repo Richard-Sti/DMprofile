@@ -257,7 +257,6 @@ class ParticleLikelihood(BaseLikelihood):
         self.mpart = mpart
         self.bounds = (numpy.min(data["r"]), numpy.max(data["r"]))
         self.xvar = data["r"]
-        self.mass = data["M"]
         self.mtot = numpy.sum(data["M"])
 
     def get_pred(self, r, a, eq_numpy, **kwargs):
@@ -284,6 +283,31 @@ class ParticleLikelihood(BaseLikelihood):
         return 4 * numpy.pi * r**2 * eq_numpy(r, *a)
 
     def get_pred_bins(self, dlogr, a, eq_numpy, **kwargs):
+        """
+        Calculate the predicted number of particles in bins of width `dlogr`.
+        The bins are logarithmically spaced between the minimum and maximum
+        particle distance.
+
+        Parameters
+        ----------
+        dlogr : float
+            Width of the radial bins in log-space.
+        a : list
+            Parameters to substitute into the equation considered.
+        eq_numpy : numpy function
+            Function to use which gives DM density profile.
+        **kwargs : dict
+            Additional keyword arguments. Currently not supported.
+
+        Returns
+        -------
+        bin_centres : 1-dimensional array
+            Bin centres.
+        pred_counts : 1-dimensional array
+            Predicted number of particles in each bin.
+        counts : 1-dimensional array
+            Actual number of particles in each bin.
+        """
         bin_centres, counts, dx = self.counts_in_bins(
             self.xvar, self.mass, dlogr=dlogr, mpart=self.mpart)
 
