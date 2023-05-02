@@ -21,7 +21,6 @@ from abc import ABC, abstractmethod
 
 import numpy
 import sympy
-from scipy.integrate import quad
 from scipy.stats import binned_statistic
 
 sys.path.append("/mnt/zfsusers/rstiskalek/DMprofile/ESR")  # noqa
@@ -243,21 +242,51 @@ class ParticleLikelihood(BaseLikelihood):
         Mass of a single DM particle in the simulation. Default is
         1.1641532e-10.
     """
-    yvar = None
-    yerr = None
+    _halos = None
+    _rmax = None
 
-    def __init__(self, datapath, name, mpart=1.1641532e-10):
-        # First of all, we set up the ESR paths
+    def __init__(self, halos, name):
         self.set_paths("particle" + name)
+        self.halos = halos
+        self.xeval = numpy.linspace(1e-6, 1, 1000)
 
-        # Now we load the data. TODO: later do this directly when generating
-        # the data to avoid unnecessary overhead here.
-        archive = numpy.load(datapath)
-        data = archive["42"]  # Good test halo for now.
-        self.mpart = mpart
-        self.bounds = (numpy.min(data["r"]), numpy.max(data["r"]))
-        self.xvar = data["r"]
-        self.mtot = numpy.sum(data["M"])
+    @property
+    def halos(self):
+        """
+        Halos to use for the likelihood calculation.
+
+        Returns
+        -------
+        halos : array of 1-dimensional arrays
+            Each element is an array of radial positions of halo's particles.
+        """
+        return self._halos
+
+    @halos.setter
+    def halos(self, halos):
+        """
+        Set the halos, ensuring it is in the right format, normalise radial
+        positions and save the maximum distance.
+        """
+        if isinstance(halos, list):
+            halos = numpy.asanyarray(halos, dtype=object)
+        rmax = numpy.full(len(halos), numpy.nan, dtype=numpy.float32)
+        for i, halo in enumerate(halos):
+            rmax[i] = numpy.max(halo)
+            halos[i] /= rmax[i]
+        self._halos = halos
+        self._rmax = rmax
+
+    @property
+    def rmax(self):
+        """
+        Maximum radial separation of particles in each halo.
+
+        Parameters
+        ----------
+        rmax : 1-dimensional array
+        """
+        return self._rmax
 
     def get_pred(self, r, a, eq_numpy, **kwargs):
         """
@@ -308,10 +337,12 @@ class ParticleLikelihood(BaseLikelihood):
         counts : 1-dimensional array
             Actual number of particles in each bin.
         """
+        # TODO: this normalisation needs to be fixed.
         bin_centres, counts, dx = self.counts_in_bins(
             self.xvar, self.mass, dlogr=dlogr, mpart=self.mpart)
 
         pred_counts = self.get_pred(bin_centres, a, eq_numpy, **kwargs)
+
         pred_counts *= dx / self.mpart
         return bin_centres, pred_counts, counts
 
@@ -334,9 +365,9 @@ class ParticleLikelihood(BaseLikelihood):
             The negative log-likelihood for the given function and parameters.
         """
         args = (numpy.atleast_1d(a), eq_numpy,)
-        # TODO do something about the convergence.
-        mtot = quad(self.get_pred, *self.bounds, args=args)[0]
-        negll = -numpy.sum(numpy.log(self.get_pred(self.xvar, *args) / mtot))
+        mtot = numpy.trapz(self.get_pred(self.xeval, *args), self.xeval)
+        negll = numpy.log(self.get_pred(self.halos[0], *args) / mtot)
+        negll = - numpy.sum(negll)
 
         if not numpy.isfinite(negll):
             return numpy.infty
