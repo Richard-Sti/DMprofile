@@ -24,8 +24,9 @@ import sympy
 from scipy.stats import binned_statistic
 
 sys.path.append("/mnt/zfsusers/rstiskalek/DMprofile/ESR")  # noqa
-from esr.fitting.sympy_symbols import (a0, a1, a2, cube, inv, log, pow, sqrt, square, x) # noqa  # type: ignore
-from esr.generation import simplifier  # noqa  # type: ignore
+from esr.fitting.sympy_symbols import (a0, a1, a2, cube, inv,  # noqa
+                                       log, pow, sqrt, square, x) # noqa
+from esr.generation import simplifier  # noqa
 
 
 ###############################################################################

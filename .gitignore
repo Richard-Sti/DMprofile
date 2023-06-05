@@ -2,3 +2,4 @@ esr_env/
 .vscode/
 .bashrc
 dmprofile/
+illustris_python/*
